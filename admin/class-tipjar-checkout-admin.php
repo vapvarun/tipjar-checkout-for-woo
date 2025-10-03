@@ -1,14 +1,17 @@
 <?php
 /**
- * TipJar at Checkout for Woo Admin.
+ * TipJar at Checkout for Woo Admin
  *
  * @package TipJar_Checkout_For_Woo
+ * @since   2.0.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Class TipJar_Checkout_Admin.
+ * TipJar_Checkout_Admin Class.
+ *
+ * @since 2.0.0
  */
 class TipJar_Checkout_Admin {
 
@@ -16,7 +19,7 @@ class TipJar_Checkout_Admin {
 	 * Initialize the admin class.
 	 */
 	public function init() {
-		// Register settings.
+		// Register the settings page.
 		add_filter( 'woocommerce_get_settings_pages', array( $this, 'add_settings_page' ) );
 
 		// Add the log page.

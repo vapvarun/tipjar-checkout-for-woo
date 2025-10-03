@@ -1,35 +1,47 @@
 <?php
 /**
- * Plugin Name: TipJar at Checkout for Woo
- * Description: Adds an optional tip selection to the WooCommerce checkout page.
- * Version: 2.0.0
- * Author: vapvarun
- * Author URI: https://vapvarun.com
- * License: GPL-2.0+
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: tipjar-checkout-for-woo
+ * Plugin Name:     TipJar at Checkout for Woo
+ * Plugin URI:      https://vapvarun.com
+ * Description:     Adds a highly configurable tip selector to your WooCommerce checkout page.
+ * Version:         2.0.0
+ * Author:          vapvarun
+ * Author URI:      https://vapvarun.com
+ * License:         GPL-2.0+
+ * License URI:     https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:     tipjar-checkout-for-woo
+ *
+ * @package         TipJar_Checkout_For_Woo
  */
 
 defined( 'ABSPATH' ) || exit;
 
+// Constants.
 const TIPJAR_CHECKOUT_TIP_SESSION_KEY = 'tipjar_checkout_tip';
 const TIPJAR_CHECKOUT_LOG_TABLE       = 'tipjar_checkout_tips';
 
+/**
+ * Runs on plugin activation.
+ */
 register_activation_hook( __FILE__, 'tipjar_checkout_install' );
 
-add_action( 'plugins_loaded', 'tipjar_checkout_tip_bootstrap', 20 );
-
+/**
+ * Bootstraps the plugin.
+ *
+ * @since 1.0.0
+ */
 function tipjar_checkout_tip_bootstrap() {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
 	}
 
+	// Admin functionality.
 	if ( is_admin() ) {
 		require_once __DIR__ . '/admin/class-tipjar-checkout-admin.php';
 		$admin = new TipJar_Checkout_Admin();
 		$admin->init();
 	}
 
+	// Frontend hooks.
 	add_action( 'wp_enqueue_scripts', 'tipjar_checkout_tip_enqueue_assets' );
 	add_action( 'woocommerce_checkout_before_customer_details', 'tipjar_checkout_tip_render_field', 25 );
 	add_action( 'woocommerce_checkout_before_order_review', 'tipjar_checkout_tip_render_field', 5 );
@@ -38,10 +50,18 @@ function tipjar_checkout_tip_bootstrap() {
 	add_action( 'woocommerce_cart_calculate_fees', 'tipjar_checkout_tip_apply_fee', 20 );
 	add_action( 'woocommerce_checkout_create_order', 'tipjar_checkout_tip_save_meta', 20, 2 );
 	add_action( 'woocommerce_thankyou', 'tipjar_checkout_tip_reset_session' );
+
+	// AJAX handlers.
 	add_action( 'wc_ajax_tipjar_checkout_tip_set', 'tipjar_checkout_tip_handle_ajax' );
 	add_action( 'wc_ajax_nopriv_tipjar_checkout_tip_set', 'tipjar_checkout_tip_handle_ajax' );
 }
+add_action( 'plugins_loaded', 'tipjar_checkout_tip_bootstrap', 20 );
 
+/**
+ * Enqueue frontend scripts and styles.
+ *
+ * @since 1.0.0
+ */
 function tipjar_checkout_tip_enqueue_assets() {
 	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
 		return;
@@ -51,7 +71,7 @@ function tipjar_checkout_tip_enqueue_assets() {
 	$style_path  = plugin_dir_path( __FILE__ ) . 'assets/css/tipjar-checkout.css';
 	$script_url  = plugins_url( 'assets/js/tipjar-checkout.js', __FILE__ );
 	$style_url   = plugins_url( 'assets/css/tipjar-checkout.css', __FILE__ );
-	$version     = file_exists( $script_path ) ? filemtime( $script_path ) : '1.0.0';
+	$version     = file_exists( $script_path ) ? filemtime( $script_path ) : '2.0.0';
 	$style_ver   = file_exists( $style_path ) ? filemtime( $style_path ) : $version;
 
 	wp_enqueue_script( 'tipjar-checkout', $script_url, array( 'jquery', 'wp-data' ), $version, true );
@@ -64,15 +84,19 @@ function tipjar_checkout_tip_enqueue_assets() {
 	}
 }
 
+/**
+ * Render the tip field on the checkout page.
+ *
+ * @since 1.0.0
+ */
 function tipjar_checkout_tip_render_field() {
 	static $rendered = false;
 
-	if ( $rendered || 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) || ! tipjar_checkout_are_conditions_met() ) {
+	if ( $rendered || 'yes' !== get_option( 'tipjar_checkout_enabled', 'yes' ) || ! tipjar_checkout_are_conditions_met() ) {
 		return;
 	}
 
-	$rendered = true;
-
+	$rendered     = true;
 	$current_tip  = tipjar_checkout_tip_get_amount();
 	$presets      = tipjar_checkout_tip_get_presets();
 	$decimals     = wc_get_price_decimals();
@@ -81,33 +105,45 @@ function tipjar_checkout_tip_render_field() {
 	$description  = get_option( 'tipjar_checkout_description', __( 'Choose a tip amount for the team.', 'tipjar-checkout-for-woo' ) );
 	$custom_label = get_option( 'tipjar_checkout_custom_label', __( 'Custom tip amount', 'tipjar-checkout-for-woo' ) );
 
-	echo '<div class="woo-checkout-tip form-row form-row-wide">';
-	echo '<h3 class="woo-checkout-tip__title">' . esc_html( $title ) . '</h3>';
-	echo '<p class="woo-checkout-tip__description">' . esc_html( $description ) . '</p>';
+	?>
+	<div class="woo-checkout-tip form-row form-row-wide">
+		<h3 class="woo-checkout-tip__title"><?php echo esc_html( $title ); ?></h3>
+		<p class="woo-checkout-tip__description"><?php echo esc_html( $description ); ?></p>
 
-	if ( ! empty( $presets ) ) {
-		echo '<div class="woo-checkout-tip__quick-choice">';
-		foreach ( $presets as $preset_value ) {
-			$button_label = tipjar_checkout_tip_get_preset_label( $preset_value );
-			$button_class = (float) $preset_value === (float) $current_tip ? 'button woo-checkout-tip__button is-active' : 'button woo-checkout-tip__button';
-			echo '<button type="button" class="' . esc_attr( $button_class ) . '" data-tip="' . esc_attr( $preset_value ) . '">' . esc_html( $button_label ) . '</button>';
-		}
-		echo '</div>';
-	}
+		<?php if ( ! empty( $presets ) ) : ?>
+			<div class="woo-checkout-tip__quick-choice">
+				<?php
+				foreach ( $presets as $preset_value ) {
+					$button_label = tipjar_checkout_tip_get_preset_label( $preset_value );
+					$button_class = (float) $preset_value === (float) $current_tip ? 'button woo-checkout-tip__button is-active' : 'button woo-checkout-tip__button';
+					?>
+					<button type="button" class="<?php echo esc_attr( $button_class ); ?>" data-tip="<?php echo esc_attr( $preset_value ); ?>"><?php echo esc_html( $button_label ); ?></button>
+					<?php
+				}
+				?>
+			</div>
+		<?php endif; ?>
 
-	echo '<p class="woo-checkout-tip__custom">';
-	echo '<label for="woo-checkout-tip-amount">' . esc_html( $custom_label ) . '</label>';
-	echo '<input type="number" min="0" step="0.01" inputmode="decimal" id="woo-checkout-tip-amount" name="woo-checkout-tip-amount" value="' . esc_attr( $value_attr ) . '" placeholder="' . esc_attr__( 'Enter amount', 'tipjar-checkout-for-woo' ) . '">';
-	echo '</p>';
-	echo '</div>';
+		<p class="woo-checkout-tip__custom">
+			<label for="woo-checkout-tip-amount"><?php echo esc_html( $custom_label ); ?></label>
+			<input type="number" min="0" step="0.01" inputmode="decimal" id="woo-checkout-tip-amount" name="woo-checkout-tip-amount" value="<?php echo esc_attr( $value_attr ); ?>" placeholder="<?php esc_attr_e( 'Enter amount', 'tipjar-checkout-for-woo' ); ?>">
+		</p>
+	</div>
+	<?php
 }
 
+/**
+ * Apply the tip as a fee to the cart.
+ *
+ * @since 1.0.0
+ * @param WC_Cart $cart The WooCommerce cart object.
+ */
 function tipjar_checkout_tip_apply_fee( $cart ) {
 	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
 		return;
 	}
 
-	if ( 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) || ! tipjar_checkout_are_conditions_met() ) {
+	if ( 'yes' !== get_option( 'tipjar_checkout_enabled', 'yes' ) || ! tipjar_checkout_are_conditions_met() ) {
 		return;
 	}
 
@@ -128,6 +164,13 @@ function tipjar_checkout_tip_apply_fee( $cart ) {
 	$cart->add_fee( $label, $tip_amount, $taxable );
 }
 
+/**
+ * Save the tip amount to order meta and the log table.
+ *
+ * @since 1.0.0
+ * @param WC_Order $order The WooCommerce order object.
+ * @param array    $data  The data posted from the checkout form.
+ */
 function tipjar_checkout_tip_save_meta( $order, $data ) {
 	$tip_amount = tipjar_checkout_tip_get_amount();
 
@@ -146,21 +189,37 @@ function tipjar_checkout_tip_save_meta( $order, $data ) {
 			'order_id'     => $order->get_id(),
 			'tip_amount'   => $tip_amount,
 			'date_created' => current_time( 'mysql' ),
+		),
+		array(
+			'%d',
+			'%f',
+			'%s',
 		)
 	);
 }
 
+/**
+ * Reset the tip session after checkout is complete.
+ *
+ * @since 1.0.0
+ */
 function tipjar_checkout_tip_reset_session() {
-	if ( class_exists( 'WooCommerce' ) && function_exists( 'WC' ) && WC()->session ) {
+	if ( function_exists( 'WC' ) && WC()->session ) {
 		WC()->session->__unset( TIPJAR_CHECKOUT_TIP_SESSION_KEY );
 	}
 }
 
+/**
+ * Handle the AJAX request to set the tip amount.
+ *
+ * @since 1.0.0
+ */
 function tipjar_checkout_tip_handle_ajax() {
 	check_ajax_referer( 'tipjar_checkout_tip_set', 'security' );
 
 	if ( ! function_exists( 'WC' ) || ! WC()->session ) {
 		wp_send_json_error( array( 'message' => __( 'WooCommerce session unavailable.', 'tipjar-checkout-for-woo' ) ) );
+		return;
 	}
 
 	$raw_tip = isset( $_POST['tip'] ) ? sanitize_text_field( wp_unslash( $_POST['tip'] ) ) : 0;
@@ -185,6 +244,12 @@ function tipjar_checkout_tip_handle_ajax() {
 	);
 }
 
+/**
+ * Get the current tip amount from the session.
+ *
+ * @since 1.0.0
+ * @return float The tip amount.
+ */
 function tipjar_checkout_tip_get_amount() {
 	if ( ! function_exists( 'WC' ) || ! WC()->session ) {
 		return 0;
@@ -195,6 +260,12 @@ function tipjar_checkout_tip_get_amount() {
 	return is_numeric( $tip ) ? max( 0, (float) $tip ) : 0;
 }
 
+/**
+ * Get the preset tip amounts.
+ *
+ * @since 1.0.0
+ * @return array An array of preset tip amounts.
+ */
 function tipjar_checkout_tip_get_presets() {
 	$presets_str = get_option( 'tipjar_checkout_presets', '0, 2, 5, 10' );
 	$presets_arr = array_map( 'trim', explode( ',', $presets_str ) );
@@ -231,6 +302,13 @@ function tipjar_checkout_tip_get_presets() {
 	return $sanitized;
 }
 
+/**
+ * Get the label for a preset tip amount.
+ *
+ * @since 1.0.0
+ * @param float $amount The tip amount.
+ * @return string The formatted label for the amount.
+ */
 function tipjar_checkout_tip_get_preset_label( $amount ) {
 	if ( (float) $amount === 0.0 ) {
 		return esc_html__( 'No tip', 'tipjar-checkout-for-woo' );
@@ -239,6 +317,12 @@ function tipjar_checkout_tip_get_preset_label( $amount ) {
 	return wp_strip_all_tags( wc_price( $amount ) );
 }
 
+/**
+ * Get the frontend configuration data.
+ *
+ * @since 1.0.0
+ * @return array The configuration data.
+ */
 function tipjar_checkout_tip_get_frontend_config() {
 	$decimals       = wc_get_price_decimals();
 	$current_tip    = tipjar_checkout_tip_get_amount();
@@ -269,6 +353,12 @@ function tipjar_checkout_tip_get_frontend_config() {
 	);
 }
 
+/**
+ * Attach frontend configuration data to a script.
+ *
+ * @since 1.0.0
+ * @param string $handle The script handle.
+ */
 function tipjar_checkout_tip_attach_script_data( $handle ) {
 	$config = tipjar_checkout_tip_get_frontend_config();
 
@@ -281,6 +371,8 @@ function tipjar_checkout_tip_attach_script_data( $handle ) {
 
 /**
  * Create the custom database table on plugin activation.
+ *
+ * @since 2.0.0
  */
 function tipjar_checkout_install() {
 	global $wpdb;
@@ -296,14 +388,17 @@ function tipjar_checkout_install() {
 		PRIMARY KEY (tip_id)
 	) {$charset_collate};";
 
-	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	if ( ! function_exists( 'dbDelta' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	}
 	dbDelta( $sql );
 }
 
 /**
  * Check if the conditions to display the tip field are met.
  *
- * @return bool
+ * @since 2.0.0
+ * @return bool True if conditions are met, false otherwise.
  */
 function tipjar_checkout_are_conditions_met() {
 	$required_products   = get_option( 'tipjar_checkout_required_products', array() );
@@ -342,12 +437,14 @@ function tipjar_checkout_are_conditions_met() {
 		}
 	}
 
+	// If product conditions are set, check if any required product is in the cart.
 	if ( ! empty( $required_products ) ) {
 		if ( empty( array_intersect( (array) $required_products, $cart_product_ids ) ) ) {
 			return false;
 		}
 	}
 
+	// If category conditions are set, check if any product from a required category is in the cart.
 	if ( ! empty( $required_categories ) ) {
 		if ( empty( array_intersect( (array) $required_categories, array_unique( $cart_category_ids ) ) ) ) {
 			return false;

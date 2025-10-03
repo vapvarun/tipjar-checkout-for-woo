@@ -1,16 +1,26 @@
 <?php
 /**
- * TipJar at Checkout for Woo Log.
+ * TipJar at Checkout for Woo Log Page
  *
  * @package TipJar_Checkout_For_Woo
+ * @since   2.0.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Class TipJar_Checkout_Log.
+ * TipJar_Checkout_Log Class.
+ *
+ * @since 2.0.0
  */
 class TipJar_Checkout_Log {
+
+	/**
+	 * Instance of the log list table.
+	 *
+	 * @var TipJar_Checkout_Log_List_Table
+	 */
+	private $log_list_table;
 
 	/**
 	 * Initialize the log page.
@@ -24,34 +34,42 @@ class TipJar_Checkout_Log {
 	 * Add the log page to the admin menu.
 	 */
 	public function add_log_page() {
-		add_submenu_page(
+		$hook = add_submenu_page(
 			'woocommerce',
-			__( 'Tip Log', 'tipjar-checkout-for-woo' ),
-			__( 'Tip Log', 'tipjar-checkout-for-woo' ),
+			esc_html__( 'Tip Log', 'tipjar-checkout-for-woo' ),
+			esc_html__( 'Tip Log', 'tipjar-checkout-for-woo' ),
 			'manage_woocommerce',
 			'tipjar-checkout-log',
 			array( $this, 'render_log_page' )
 		);
+
+		add_action( "load-{$hook}", array( $this, 'load_list_table' ) );
+	}
+
+	/**
+	 * Load the list table.
+	 */
+	public function load_list_table() {
+		require_once __DIR__ . '/class-tipjar-checkout-log-list-table.php';
+		$this->log_list_table = new TipJar_Checkout_Log_List_Table();
 	}
 
 	/**
 	 * Render the log page.
 	 */
 	public function render_log_page() {
-		require_once __DIR__ . '/class-tipjar-checkout-log-list-table.php';
-
-		$log_list_table = new TipJar_Checkout_Log_List_Table();
-		$log_list_table->prepare_items();
+		$this->log_list_table->prepare_items();
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline"><?php echo esc_html__( 'Tip Log', 'tipjar-checkout-for-woo' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Tip Log', 'tipjar-checkout-for-woo' ); ?></h1>
 			<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'action', 'export_tips' ), 'export_tips_nonce', 'export_tips_nonce' ) ); ?>" class="page-title-action">
-				<?php echo esc_html__( 'Export to CSV', 'tipjar-checkout-for-woo' ); ?>
+				<?php esc_html_e( 'Export to CSV', 'tipjar-checkout-for-woo' ); ?>
 			</a>
-			<p><?php echo esc_html__( 'A list of all tips collected through the checkout.', 'tipjar-checkout-for-woo' ); ?></p>
+			<p><?php esc_html_e( 'A list of all tips collected through the checkout.', 'tipjar-checkout-for-woo' ); ?></p>
 			<form method="post">
+				<input type="hidden" name="page" value="tipjar-checkout-log" />
 				<?php
-				$log_list_table->display();
+				$this->log_list_table->display();
 				?>
 			</form>
 		</div>
@@ -82,15 +100,17 @@ class TipJar_Checkout_Log {
 			return;
 		}
 
-		$filename = 'tipjar-export-' . date( 'Y-m-d' ) . '.csv';
+		$filename = 'tipjar-export-' . gmdate( 'Y-m-d' ) . '.csv';
 
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename=' . $filename );
 
 		$output = fopen( 'php://output', 'w' );
 
+		// Add column headers.
 		fputcsv( $output, array( 'Order ID', 'Tip Amount', 'Date' ) );
 
+		// Add data rows.
 		foreach ( $data as $row ) {
 			fputcsv( $output, array( $row['order_id'], $row['tip_amount'], $row['date_created'] ) );
 		}

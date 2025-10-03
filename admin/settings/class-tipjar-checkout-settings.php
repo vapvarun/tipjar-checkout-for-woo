@@ -1,18 +1,21 @@
 <?php
 /**
- * TipJar at Checkout for Woo Settings.
+ * TipJar at Checkout for Woo Settings
  *
  * @package TipJar_Checkout_For_Woo
+ * @since   2.0.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! class_exists( 'WC_Settings_Page' ) ) {
+if ( ! class_exists( 'WC_Settings_Page', false ) ) {
 	include_once WC()->plugin_path() . '/includes/admin/settings/class-wc-settings-page.php';
 }
 
 /**
- * Class TipJar_Checkout_Settings.
+ * TipJar_Checkout_Settings Class.
+ *
+ * @since 2.0.0
  */
 class TipJar_Checkout_Settings extends WC_Settings_Page {
 
@@ -27,55 +30,55 @@ class TipJar_Checkout_Settings extends WC_Settings_Page {
 	}
 
 	/**
-	 * Get the settings array.
+	 * Get settings array.
 	 *
-	 * @return array The settings array.
+	 * @return array
 	 */
 	public function get_settings() {
 		$settings = array(
 			array(
-				'title' => __( 'TipJar Checkout Settings', 'tipjar-checkout-for-woo' ),
+				'title' => esc_html__( 'TipJar Checkout Settings', 'tipjar-checkout-for-woo' ),
 				'type'  => 'title',
 				'id'    => 'tipjar_checkout_options',
 			),
 			array(
-				'title'   => __( 'Enable TipJar', 'tipjar-checkout-for-woo' ),
-				'desc'    => __( 'Enable or disable the tip functionality on the checkout page.', 'tipjar-checkout-for-woo' ),
+				'title'   => esc_html__( 'Enable TipJar', 'tipjar-checkout-for-woo' ),
+				'desc'    => esc_html__( 'Enable or disable the tip functionality on the checkout page.', 'tipjar-checkout-for-woo' ),
 				'id'      => 'tipjar_checkout_enabled',
 				'type'    => 'checkbox',
 				'default' => 'yes',
 			),
 			array(
-				'title'   => __( 'Title', 'tipjar-checkout-for-woo' ),
-				'desc'    => __( 'The title to display above the tip selection.', 'tipjar-checkout-for-woo' ),
+				'title'   => esc_html__( 'Title', 'tipjar-checkout-for-woo' ),
+				'desc'    => esc_html__( 'The title to display above the tip selection.', 'tipjar-checkout-for-woo' ),
 				'id'      => 'tipjar_checkout_title',
 				'type'    => 'text',
-				'default' => __( 'Add a tip', 'tipjar-checkout-for-woo' ),
+				'default' => esc_html__( 'Add a tip', 'tipjar-checkout-for-woo' ),
 			),
 			array(
-				'title'   => __( 'Description', 'tipjar-checkout-for-woo' ),
-				'desc'    => __( 'The description to display below the title.', 'tipjar-checkout-for-woo' ),
+				'title'   => esc_html__( 'Description', 'tipjar-checkout-for-woo' ),
+				'desc'    => esc_html__( 'The description to display below the title.', 'tipjar-checkout-for-woo' ),
 				'id'      => 'tipjar_checkout_description',
 				'type'    => 'textarea',
-				'default' => __( 'Choose a tip amount for the team.', 'tipjar-checkout-for-woo' ),
+				'default' => esc_html__( 'Choose a tip amount for the team.', 'tipjar-checkout-for-woo' ),
 			),
 			array(
-				'title'   => __( 'Preset Amounts', 'tipjar-checkout-for-woo' ),
-				'desc'    => __( 'Enter preset tip amounts, separated by commas.', 'tipjar-checkout-for-woo' ),
+				'title'   => esc_html__( 'Preset Amounts', 'tipjar-checkout-for-woo' ),
+				'desc'    => esc_html__( 'Enter preset tip amounts, separated by commas.', 'tipjar-checkout-for-woo' ),
 				'id'      => 'tipjar_checkout_presets',
 				'type'    => 'text',
 				'default' => '0, 2, 5, 10',
 			),
 			array(
-				'title'   => __( 'Custom Amount Label', 'tipjar-checkout-for-woo' ),
-				'desc'    => __( 'The label for the custom tip amount input field.', 'tipjar-checkout-for-woo' ),
+				'title'   => esc_html__( 'Custom Amount Label', 'tipjar-checkout-for-woo' ),
+				'desc'    => esc_html__( 'The label for the custom tip amount input field.', 'tipjar-checkout-for-woo' ),
 				'id'      => 'tipjar_checkout_custom_label',
 				'type'    => 'text',
-				'default' => __( 'Custom tip amount', 'tipjar-checkout-for-woo' ),
+				'default' => esc_html__( 'Custom tip amount', 'tipjar-checkout-for-woo' ),
 			),
 			array(
-				'title'   => __( 'Taxable', 'tipjar-checkout-for-woo' ),
-				'desc'    => __( 'Whether the tip is taxable.', 'tipjar-checkout-for-woo' ),
+				'title'   => esc_html__( 'Taxable', 'tipjar-checkout-for-woo' ),
+				'desc'    => esc_html__( 'Whether the tip is taxable.', 'tipjar-checkout-for-woo' ),
 				'id'      => 'tipjar_checkout_taxable',
 				'type'    => 'checkbox',
 				'default' => 'no',
@@ -85,38 +88,38 @@ class TipJar_Checkout_Settings extends WC_Settings_Page {
 				'id'   => 'tipjar_checkout_options',
 			),
 			array(
-				'title' => __( 'Conditional Display', 'tipjar-checkout-for-woo' ),
+				'title' => esc_html__( 'Conditional Display', 'tipjar-checkout-for-woo' ),
 				'type'  => 'title',
 				'id'    => 'tipjar_checkout_conditional_options',
-				'desc'  => __( 'Only show the tip field if the following conditions are met. Leave all conditions empty to show for all orders.', 'tipjar-checkout-for-woo' ),
+				'desc'  => esc_html__( 'Only show the tip field if the following conditions are met. Leave all conditions empty to show for all orders.', 'tipjar-checkout-for-woo' ),
 			),
 			array(
-				'title'             => __( 'Required Products', 'tipjar-checkout-for-woo' ),
-				'desc'              => __( 'Only show the tip field if these products are in the cart.', 'tipjar-checkout-for-woo' ),
+				'title'             => esc_html__( 'Required Products', 'tipjar-checkout-for-woo' ),
+				'desc'              => esc_html__( 'Only show the tip field if these products are in the cart.', 'tipjar-checkout-for-woo' ),
 				'id'                => 'tipjar_checkout_required_products',
 				'type'              => 'multiselect',
 				'class'             => 'wc-product-search',
 				'options'           => $this->get_products_for_options(),
 				'custom_attributes' => array(
-					'data-placeholder' => __( 'Search for products…', 'tipjar-checkout-for-woo' ),
+					'data-placeholder' => esc_attr__( 'Search for products…', 'tipjar-checkout-for-woo' ),
 					'data-multiple'    => 'true',
 				),
 			),
 			array(
-				'title'             => __( 'Required Categories', 'tipjar-checkout-for-woo' ),
-				'desc'              => __( 'Only show the tip field if products from these categories are in the cart.', 'tipjar-checkout-for-woo' ),
+				'title'             => esc_html__( 'Required Categories', 'tipjar-checkout-for-woo' ),
+				'desc'              => esc_html__( 'Only show the tip field if products from these categories are in the cart.', 'tipjar-checkout-for-woo' ),
 				'id'                => 'tipjar_checkout_required_categories',
 				'type'              => 'multiselect',
 				'class'             => 'wc-category-search',
 				'options'           => $this->get_categories_for_options(),
 				'custom_attributes' => array(
-					'data-placeholder' => __( 'Search for categories…', 'tipjar-checkout-for-woo' ),
+					'data-placeholder' => esc_attr__( 'Search for categories…', 'tipjar-checkout-for-woo' ),
 					'data-multiple'    => 'true',
 				),
 			),
 			array(
-				'title'             => __( 'Minimum Cart Total', 'tipjar-checkout-for-woo' ),
-				'desc'              => __( 'The minimum cart total required to show the tip field.', 'tipjar-checkout-for-woo' ),
+				'title'             => esc_html__( 'Minimum Cart Total', 'tipjar-checkout-for-woo' ),
+				'desc'              => esc_html__( 'The minimum cart total required to show the tip field.', 'tipjar-checkout-for-woo' ),
 				'id'                => 'tipjar_checkout_min_total',
 				'type'              => 'number',
 				'custom_attributes' => array(
@@ -125,8 +128,8 @@ class TipJar_Checkout_Settings extends WC_Settings_Page {
 				),
 			),
 			array(
-				'title'             => __( 'Maximum Cart Total', 'tipjar-checkout-for-woo' ),
-				'desc'              => __( 'The maximum cart total allowed to show the tip field.', 'tipjar-checkout-for-woo' ),
+				'title'             => esc_html__( 'Maximum Cart Total', 'tipjar-checkout-for-woo' ),
+				'desc'              => esc_html__( 'The maximum cart total allowed to show the tip field.', 'tipjar-checkout-for-woo' ),
 				'id'                => 'tipjar_checkout_max_total',
 				'type'              => 'number',
 				'custom_attributes' => array(
@@ -145,6 +148,8 @@ class TipJar_Checkout_Settings extends WC_Settings_Page {
 
 	/**
 	 * Save settings.
+	 *
+	 * @since 2.0.0
 	 */
 	public function save() {
 		$settings = $this->get_settings();
@@ -154,6 +159,9 @@ class TipJar_Checkout_Settings extends WC_Settings_Page {
 	/**
 	 * Get saved products for the multiselect option.
 	 *
+	 * This is used to populate the 'options' for the 'required_products' setting.
+	 *
+	 * @since 2.0.0
 	 * @return array
 	 */
 	private function get_products_for_options() {
@@ -173,6 +181,9 @@ class TipJar_Checkout_Settings extends WC_Settings_Page {
 	/**
 	 * Get saved categories for the multiselect option.
 	 *
+	 * This is used to populate the 'options' for the 'required_categories' setting.
+	 *
+	 * @since 2.0.0
 	 * @return array
 	 */
 	private function get_categories_for_options() {
