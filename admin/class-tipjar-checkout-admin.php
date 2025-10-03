@@ -18,6 +18,11 @@ class TipJar_Checkout_Admin {
 	public function init() {
 		// Register settings.
 		add_filter( 'woocommerce_get_settings_pages', array( $this, 'add_settings_page' ) );
+
+		// Add the log page.
+		require_once __DIR__ . '/class-tipjar-checkout-log.php';
+		$log_page = new TipJar_Checkout_Log();
+		$log_page->init();
 	}
 
 	/**

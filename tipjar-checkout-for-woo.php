@@ -12,6 +12,9 @@
 defined( 'ABSPATH' ) || exit;
 
 const TIPJAR_CHECKOUT_TIP_SESSION_KEY = 'tipjar_checkout_tip';
+const TIPJAR_CHECKOUT_LOG_TABLE       = 'tipjar_checkout_tips';
+
+register_activation_hook( __FILE__, 'tipjar_checkout_install' );
 
 add_action( 'plugins_loaded', 'tipjar_checkout_tip_bootstrap', 20 );
 
@@ -124,7 +127,7 @@ function tipjar_checkout_tip_apply_fee( $cart ) {
 	$cart->add_fee( $label, $tip_amount, $taxable );
 }
 
-function tipjar_checkout_tip_save_meta( $order ) {
+function tipjar_checkout_tip_save_meta( $order, $data ) {
 	$tip_amount = tipjar_checkout_tip_get_amount();
 
 	if ( $tip_amount <= 0 ) {
@@ -132,6 +135,18 @@ function tipjar_checkout_tip_save_meta( $order ) {
 	}
 
 	$order->update_meta_data( '_tipjar_checkout_tip', wc_format_decimal( $tip_amount, wc_get_price_decimals() ) );
+
+	global $wpdb;
+	$table_name = $wpdb->prefix . TIPJAR_CHECKOUT_LOG_TABLE;
+
+	$wpdb->insert(
+		$table_name,
+		array(
+			'order_id'     => $order->get_id(),
+			'tip_amount'   => $tip_amount,
+			'date_created' => current_time( 'mysql' ),
+		)
+	);
 }
 
 function tipjar_checkout_tip_reset_session() {
@@ -261,4 +276,25 @@ function tipjar_checkout_tip_attach_script_data( $handle ) {
 		'window.tipjarCheckout = window.tipjarCheckout || ' . wp_json_encode( $config ) . ';',
 		'before'
 	);
+}
+
+/**
+ * Create the custom database table on plugin activation.
+ */
+function tipjar_checkout_install() {
+	global $wpdb;
+
+	$table_name      = $wpdb->prefix . TIPJAR_CHECKOUT_LOG_TABLE;
+	$charset_collate = $wpdb->get_charset_collate();
+
+	$sql = "CREATE TABLE {$table_name} (
+		tip_id BIGINT(20) NOT NULL AUTO_INCREMENT,
+		order_id BIGINT(20) NOT NULL,
+		tip_amount DECIMAL(10, 2) NOT NULL,
+		date_created DATETIME NOT NULL,
+		PRIMARY KEY (tip_id)
+	) {$charset_collate};";
+
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	dbDelta( $sql );
 }
