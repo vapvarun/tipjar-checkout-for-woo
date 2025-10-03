@@ -20,6 +20,12 @@ function tipjar_checkout_tip_bootstrap() {
 		return;
 	}
 
+	if ( is_admin() ) {
+		require_once __DIR__ . '/admin/class-tipjar-checkout-admin.php';
+		$admin = new TipJar_Checkout_Admin();
+		$admin->init();
+	}
+
 	add_action( 'wp_enqueue_scripts', 'tipjar_checkout_tip_enqueue_assets' );
 	add_action( 'woocommerce_checkout_before_customer_details', 'tipjar_checkout_tip_render_field', 25 );
 	add_action( 'woocommerce_checkout_before_order_review', 'tipjar_checkout_tip_render_field', 5 );
@@ -57,20 +63,23 @@ function tipjar_checkout_tip_enqueue_assets() {
 function tipjar_checkout_tip_render_field() {
 	static $rendered = false;
 
-	if ( $rendered ) {
+	if ( $rendered || 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) ) {
 		return;
 	}
 
 	$rendered = true;
 
-	$current_tip = tipjar_checkout_tip_get_amount();
-	$presets     = tipjar_checkout_tip_get_presets();
-	$decimals    = wc_get_price_decimals();
-	$value_attr  = $current_tip > 0 ? wc_format_decimal( $current_tip, $decimals ) : '';
+	$current_tip  = tipjar_checkout_tip_get_amount();
+	$presets      = tipjar_checkout_tip_get_presets();
+	$decimals     = wc_get_price_decimals();
+	$value_attr   = $current_tip > 0 ? wc_format_decimal( $current_tip, $decimals ) : '';
+	$title        = get_option( 'tipjar_checkout_title', __( 'Add a tip', 'tipjar-checkout-for-woo' ) );
+	$description  = get_option( 'tipjar_checkout_description', __( 'Choose a tip amount for the team.', 'tipjar-checkout-for-woo' ) );
+	$custom_label = get_option( 'tipjar_checkout_custom_label', __( 'Custom tip amount', 'tipjar-checkout-for-woo' ) );
 
 	echo '<div class="woo-checkout-tip form-row form-row-wide">';
-	echo '<h3 class="woo-checkout-tip__title">' . esc_html__( 'Add a tip', 'tipjar-checkout-for-woo' ) . '</h3>';
-	echo '<p class="woo-checkout-tip__description">' . esc_html__( 'Choose a tip amount for the team.', 'tipjar-checkout-for-woo' ) . '</p>';
+	echo '<h3 class="woo-checkout-tip__title">' . esc_html( $title ) . '</h3>';
+	echo '<p class="woo-checkout-tip__description">' . esc_html( $description ) . '</p>';
 
 	if ( ! empty( $presets ) ) {
 		echo '<div class="woo-checkout-tip__quick-choice">';
@@ -83,7 +92,7 @@ function tipjar_checkout_tip_render_field() {
 	}
 
 	echo '<p class="woo-checkout-tip__custom">';
-	echo '<label for="woo-checkout-tip-amount">' . esc_html__( 'Custom tip amount', 'tipjar-checkout-for-woo' ) . '</label>';
+	echo '<label for="woo-checkout-tip-amount">' . esc_html( $custom_label ) . '</label>';
 	echo '<input type="number" min="0" step="0.01" inputmode="decimal" id="woo-checkout-tip-amount" name="woo-checkout-tip-amount" value="' . esc_attr( $value_attr ) . '" placeholder="' . esc_attr__( 'Enter amount', 'tipjar-checkout-for-woo' ) . '">';
 	echo '</p>';
 	echo '</div>';
@@ -91,6 +100,10 @@ function tipjar_checkout_tip_render_field() {
 
 function tipjar_checkout_tip_apply_fee( $cart ) {
 	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+		return;
+	}
+
+	if ( 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) ) {
 		return;
 	}
 
@@ -105,7 +118,8 @@ function tipjar_checkout_tip_apply_fee( $cart ) {
 	}
 
 	$label   = apply_filters( 'tipjar_checkout_tip_label', __( 'Tip', 'tipjar-checkout-for-woo' ) );
-	$taxable = (bool) apply_filters( 'tipjar_checkout_tip_taxable', false );
+	$taxable = 'yes' === get_option( 'tipjar_checkout_taxable', 'no' );
+	$taxable = (bool) apply_filters( 'tipjar_checkout_tip_taxable', $taxable );
 
 	$cart->add_fee( $label, $tip_amount, $taxable );
 }
@@ -166,7 +180,9 @@ function tipjar_checkout_tip_get_amount() {
 }
 
 function tipjar_checkout_tip_get_presets() {
-	$presets = apply_filters( 'tipjar_checkout_tip_presets', array( 0, 2, 5, 10 ) );
+	$presets_str = get_option( 'tipjar_checkout_presets', '0, 2, 5, 10' );
+	$presets_arr = array_map( 'trim', explode( ',', $presets_str ) );
+	$presets     = apply_filters( 'tipjar_checkout_tip_presets', $presets_arr );
 
 	if ( ! is_array( $presets ) ) {
 		return array( 0 );
