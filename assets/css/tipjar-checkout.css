@@ -1,0 +1,38 @@
+.woo-checkout-tip {
+	margin: 24px 0;
+}
+
+.woo-checkout-tip__quick-choice {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 16px 0;
+}
+
+.woo-checkout-tip__button.button {
+	border-radius: 9999px;
+	padding: 6px 18px;
+	font-size: 14px;
+	line-height: 1.4;
+	transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.woo-checkout-tip__button.button.is-active {
+	background-color: #2c8cff;
+	border-color: #2c8cff;
+	color: #fff;
+}
+
+.woo-checkout-tip__custom {
+	margin-top: 20px;
+}
+
+.woo-checkout-tip__custom label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 500;
+}
+
+.woo-checkout-tip__custom input[type="number"] {
+	max-width: 180px;
+}
