@@ -66,7 +66,7 @@ function tipjar_checkout_tip_enqueue_assets() {
 function tipjar_checkout_tip_render_field() {
 	static $rendered = false;
 
-	if ( $rendered || 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) ) {
+	if ( $rendered || 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) || ! tipjar_checkout_are_conditions_met() ) {
 		return;
 	}
 
@@ -106,7 +106,7 @@ function tipjar_checkout_tip_apply_fee( $cart ) {
 		return;
 	}
 
-	if ( 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) ) {
+	if ( 'no' === get_option( 'tipjar_checkout_enabled', 'yes' ) || ! tipjar_checkout_are_conditions_met() ) {
 		return;
 	}
 
@@ -297,4 +297,61 @@ function tipjar_checkout_install() {
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	dbDelta( $sql );
+}
+
+/**
+ * Check if the conditions to display the tip field are met.
+ *
+ * @return bool
+ */
+function tipjar_checkout_are_conditions_met() {
+	$required_products   = get_option( 'tipjar_checkout_required_products', array() );
+	$required_categories = get_option( 'tipjar_checkout_required_categories', array() );
+	$min_total           = (float) get_option( 'tipjar_checkout_min_total', 0 );
+	$max_total           = (float) get_option( 'tipjar_checkout_max_total', 0 );
+
+	// If no conditions are set, always show the field.
+	if ( empty( $required_products ) && empty( $required_categories ) && ! $min_total && ! $max_total ) {
+		return true;
+	}
+
+	if ( ! function_exists( 'WC' ) || ! WC()->cart || WC()->cart->is_empty() ) {
+		return false;
+	}
+
+	$cart       = WC()->cart;
+	$cart_total = (float) $cart->get_cart_contents_total();
+
+	// Check min/max totals.
+	if ( $min_total > 0 && $cart_total < $min_total ) {
+		return false;
+	}
+	if ( $max_total > 0 && $cart_total > $max_total ) {
+		return false;
+	}
+
+	$cart_product_ids  = array();
+	$cart_category_ids = array();
+
+	foreach ( $cart->get_cart() as $cart_item ) {
+		$cart_product_ids[] = $cart_item['product_id'];
+		$product_categories = wc_get_product_term_ids( $cart_item['product_id'], 'product_cat' );
+		if ( ! empty( $product_categories ) ) {
+			$cart_category_ids = array_merge( $cart_category_ids, $product_categories );
+		}
+	}
+
+	if ( ! empty( $required_products ) ) {
+		if ( empty( array_intersect( (array) $required_products, $cart_product_ids ) ) ) {
+			return false;
+		}
+	}
+
+	if ( ! empty( $required_categories ) ) {
+		if ( empty( array_intersect( (array) $required_categories, array_unique( $cart_category_ids ) ) ) ) {
+			return false;
+		}
+	}
+
+	return true;
 }
