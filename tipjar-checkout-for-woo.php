@@ -2,8 +2,9 @@
 /**
  * Plugin Name: TipJar at Checkout for Woo
  * Description: Adds an optional tip selection to the WooCommerce checkout page.
- * Version: 1.0.0
- * Author: Shashank Dubey
+ * Version: 2.0.0
+ * Author: vapvarun
+ * Author URI: https://vapvarun.com
  * License: GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: tipjar-checkout-for-woo
